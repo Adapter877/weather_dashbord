@@ -1,6 +1,8 @@
 import { auth, signIn, signOut } from "@/auth"
 import { getWeather, getWeatherCondition } from "./lib/weather"
 import { Wind, Cloud, Sun, CloudRain, CloudSnow, CloudLightning, CloudFog, CloudSun, Snowflake, Droplets, MapPin, LogOut } from "lucide-react"
+import { LocationRequester } from "./components/LocationRequester"
+import { WeatherChart } from "./components/WeatherChart"
 
 // Component to map icon name to Lucide component
 const WeatherIcon = ({ name, className }: { name: string; className?: string }) => {
@@ -16,11 +18,16 @@ const WeatherIcon = ({ name, className }: { name: string; className?: string }) 
   }
 }
 
-export default async function Home() {
+export default async function Home(props: { searchParams: Promise<{ lat?: string; lon?: string }> }) {
+  const searchParams = await props.searchParams
   const session = await auth()
 
-  // Default to Bangkok coordinates
-  const weather = await getWeather(13.7563, 100.5018)
+  // Use params or default to Bangkok
+  const lat = searchParams.lat ? parseFloat(searchParams.lat) : 13.7563
+  const lon = searchParams.lon ? parseFloat(searchParams.lon) : 100.5018
+  const isDefaultLocation = !searchParams.lat
+
+  const weather = await getWeather(lat, lon)
   const currentCondition = weather ? getWeatherCondition(weather.current.weatherCode) : { label: "Unknown", iconName: "Cloud" }
 
   if (!session) {
@@ -49,6 +56,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-blue-500/30">
+      <LocationRequester />
       {/* Navbar */}
       <nav className="border-b border-slate-800/60 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -87,7 +95,9 @@ export default async function Home() {
               <div>
                 <div className="flex items-center space-x-2 text-blue-300 mb-1">
                   <MapPin className="w-4 h-4" />
-                  <span className="text-sm font-medium tracking-wide uppercase">Bangkok, Thailand</span>
+                  <span className="text-sm font-medium tracking-wide uppercase">
+                    {isDefaultLocation ? "Bangkok, Thailand" : `Lat: ${lat}, Lon: ${lon}`}
+                  </span>
                 </div>
                 <div className="text-slate-400 text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
               </div>
@@ -144,6 +154,9 @@ export default async function Home() {
             </div>
           </div>
         )}
+
+        {/* Hourly Chart */}
+        {weather && <WeatherChart data={weather.hourly} />}
 
         {/* Debug Section (Collapsible details) */}
         <div className="mt-12 border-t border-slate-800/50 pt-8">
