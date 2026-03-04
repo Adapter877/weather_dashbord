@@ -7,13 +7,15 @@ import { MapPin } from "lucide-react"
 export function LocationRequester() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [loading, setLoading] = useState(false)
-
   const hasLocation = searchParams.has("lat") && searchParams.has("lon")
+  const [loading, setLoading] = useState(() => {
+    if (hasLocation) return false
+    if (typeof navigator === "undefined") return true
+    return "geolocation" in navigator
+  })
 
   useEffect(() => {
     if (!hasLocation && "geolocation" in navigator) {
-      setLoading(true)
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords
@@ -21,7 +23,6 @@ export function LocationRequester() {
           params.set("lat", latitude.toFixed(4))
           params.set("lon", longitude.toFixed(4))
           router.replace(`?${params.toString()}`)
-          setLoading(false)
         },
         (error) => {
           console.error("Geolocation error:", error)
