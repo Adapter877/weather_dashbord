@@ -38,6 +38,34 @@ const WeatherIcon = ({ name, className }: { name: string; className?: string }) 
   }
 }
 
+const getPm25Status = (pm25: number | null) => {
+  if (pm25 === null) {
+    return {
+      label: "ไม่มีข้อมูล",
+      badgeClass: "border-slate-600/50 bg-slate-700/20 text-slate-300",
+    }
+  }
+
+  if (pm25 <= 15) {
+    return {
+      label: "ดี",
+      badgeClass: "border-emerald-300/40 bg-emerald-500/15 text-emerald-200",
+    }
+  }
+
+  if (pm25 <= 35) {
+    return {
+      label: "ปานกลาง",
+      badgeClass: "border-orange-300/40 bg-orange-500/15 text-orange-200",
+    }
+  }
+
+  return {
+    label: "เสี่ยง",
+    badgeClass: "border-red-300/40 bg-red-500/15 text-red-200",
+  }
+}
+
 export default async function Home(props: { searchParams: Promise<{ lat?: string; lon?: string }> }) {
   const searchParams = await props.searchParams
 
@@ -55,6 +83,7 @@ export default async function Home(props: { searchParams: Promise<{ lat?: string
 
   const weather = await getWeather(lat, lon)
   const currentCondition = weather ? getWeatherCondition(weather.current.weatherCode) : { label: "Unknown", iconName: "Cloud" }
+  const currentPm25Status = weather ? getPm25Status(weather.current.pm25) : getPm25Status(null)
 
   return (
     <div className="relative min-h-screen overflow-hidden text-slate-100">
@@ -201,6 +230,7 @@ export default async function Home(props: { searchParams: Promise<{ lat?: string
                   {weather.hourly.slice(0, 24).map((hour, index) => {
                     const condition = getWeatherCondition(hour.weatherCode)
                     const isNow = index === 0
+                    const pm25Status = getPm25Status(hour.pm25)
 
                     return (
                       <div
@@ -227,11 +257,13 @@ export default async function Home(props: { searchParams: Promise<{ lat?: string
                           </p>
                           <p className="text-sm md:text-right">
                             {hour.pm25 !== null ? (
-                              <span className="rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-1 text-cyan-200">
+                              <span className={`rounded-full border px-2 py-1 ${pm25Status.badgeClass}`}>
                                 {Math.round(hour.pm25)} µg/m³
                               </span>
                             ) : (
-                              <span className="text-slate-500">-</span>
+                              <span className={`rounded-full border px-2 py-1 ${pm25Status.badgeClass}`}>
+                                -
+                              </span>
                             )}
                           </p>
                         </div>
@@ -256,10 +288,17 @@ export default async function Home(props: { searchParams: Promise<{ lat?: string
                   </div>
                   <div className="rounded-xl border border-slate-700/50 bg-slate-900/35 p-4">
                     <p className="text-slate-400">PM2.5</p>
-                    <p className="mt-1 flex items-center gap-2 text-base text-slate-100">
-                      <Droplets className="h-4 w-4 text-cyan-300" />
-                      {weather.current.pm25 !== null ? `${Math.round(weather.current.pm25)} µg/m³` : "ไม่มีข้อมูล"}
-                    </p>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className="flex items-center gap-2 text-base text-slate-100">
+                        <Droplets className="h-4 w-4 text-cyan-300" />
+                        {weather.current.pm25 !== null ? `${Math.round(weather.current.pm25)} µg/m³` : "ไม่มีข้อมูล"}
+                      </p>
+                      <span
+                        className={`rounded-full border px-2 py-1 text-xs ${currentPm25Status.badgeClass}`}
+                      >
+                        {currentPm25Status.label}
+                      </span>
+                    </div>
                   </div>
                   <div className="rounded-xl border border-slate-700/50 bg-slate-900/35 p-4">
                     <p className="text-slate-400">Location</p>
