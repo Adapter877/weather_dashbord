@@ -19,6 +19,8 @@ export interface WeatherData {
     }[];
 }
 
+const WEATHER_API_BASE_URL = (process.env.OPEN_METEO_BASE_URL ?? "https://api.open-meteo.com").replace(/\/$/, "")
+
 export async function getWeather(lat: number, lon: number): Promise<WeatherData | null> {
     try {
         const params = new URLSearchParams({
@@ -31,7 +33,7 @@ export async function getWeather(lat: number, lon: number): Promise<WeatherData 
             forecast_days: "3", // Limit to keep payload smaller but covering enough for chart
         })
 
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
+        const res = await fetch(`${WEATHER_API_BASE_URL}/v1/forecast?${params.toString()}`, {
             next: { revalidate: 3600 }, // Cache for 1 hour
         })
 
