@@ -5,6 +5,7 @@ import {
   CloudLightning,
   CloudRain,
   CloudSun,
+  Droplets,
   MapPin,
   Snowflake,
   Sun,
@@ -12,7 +13,6 @@ import {
   Wind,
 } from "lucide-react"
 import { LocationRequester } from "./components/LocationRequester"
-import { WeatherChart } from "./components/WeatherChart"
 
 const DEFAULT_LAT = Number(process.env.DEFAULT_LAT ?? "13.7563")
 const DEFAULT_LON = Number(process.env.DEFAULT_LON ?? "100.5018")
@@ -179,7 +179,67 @@ export default async function Home(props: { searchParams: Promise<{ lat?: string
             </section>
 
             <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-              <WeatherChart data={weather.hourly} />
+              <div className="glass-panel overflow-hidden p-0">
+                <div className="border-b border-slate-700/40 px-6 py-5">
+                  <h2 className="text-lg font-semibold text-slate-100">Hourly Forecast</h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    เรียงข้อมูลรายชั่วโมงแบบละเอียด พร้อมค่า PM2.5
+                  </p>
+                </div>
+
+                <div className="hidden gap-3 border-b border-slate-700/30 px-6 py-3 text-xs uppercase tracking-[0.14em] text-slate-400 md:grid md:grid-cols-7">
+                  <span>Time</span>
+                  <span>Condition</span>
+                  <span className="text-right">Temp</span>
+                  <span className="text-right">Rain</span>
+                  <span className="text-right">Wind</span>
+                  <span className="text-right">Humidity</span>
+                  <span className="text-right">PM2.5</span>
+                </div>
+
+                <div className="divide-y divide-slate-700/25">
+                  {weather.hourly.slice(0, 24).map((hour, index) => {
+                    const condition = getWeatherCondition(hour.weatherCode)
+                    const isNow = index === 0
+
+                    return (
+                      <div
+                        key={hour.isoTime}
+                        className={`px-6 py-4 transition hover:bg-slate-900/30 ${isNow ? "bg-sky-500/10" : ""}`}
+                      >
+                        <div className="grid gap-3 md:grid-cols-7 md:items-center">
+                          <p className={`text-sm font-medium ${isNow ? "text-sky-200" : "text-slate-200"}`}>
+                            {isNow ? "Now" : hour.time}
+                          </p>
+
+                          <div className="flex items-center gap-2">
+                            <WeatherIcon name={condition.iconName} className="h-4 w-4 text-slate-200" />
+                            <span className="text-sm text-slate-200">{condition.label}</span>
+                          </div>
+
+                          <p className="text-sm text-slate-100 md:text-right">{hour.temp}°C</p>
+                          <p className="text-sm text-slate-300 md:text-right">
+                            {hour.precipitationProbability !== null ? `${hour.precipitationProbability}%` : "-"}
+                          </p>
+                          <p className="text-sm text-slate-300 md:text-right">{hour.windSpeed} km/h</p>
+                          <p className="text-sm text-slate-300 md:text-right">
+                            {hour.humidity !== null ? `${hour.humidity}%` : "-"}
+                          </p>
+                          <p className="text-sm md:text-right">
+                            {hour.pm25 !== null ? (
+                              <span className="rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-1 text-cyan-200">
+                                {Math.round(hour.pm25)} µg/m³
+                              </span>
+                            ) : (
+                              <span className="text-slate-500">-</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
 
               <aside className="glass-panel p-6">
                 <h2 className="text-lg font-semibold text-slate-100">Current Summary</h2>
@@ -193,6 +253,13 @@ export default async function Home(props: { searchParams: Promise<{ lat?: string
                   <div className="rounded-xl border border-slate-700/50 bg-slate-900/35 p-4">
                     <p className="text-slate-400">Wind Speed</p>
                     <p className="mt-1 text-base text-slate-100">{weather.current.windSpeed} km/h</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-700/50 bg-slate-900/35 p-4">
+                    <p className="text-slate-400">PM2.5</p>
+                    <p className="mt-1 flex items-center gap-2 text-base text-slate-100">
+                      <Droplets className="h-4 w-4 text-cyan-300" />
+                      {weather.current.pm25 !== null ? `${Math.round(weather.current.pm25)} µg/m³` : "ไม่มีข้อมูล"}
+                    </p>
                   </div>
                   <div className="rounded-xl border border-slate-700/50 bg-slate-900/35 p-4">
                     <p className="text-slate-400">Location</p>
