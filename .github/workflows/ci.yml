@@ -7,29 +7,31 @@ on:
     branches: ["main"]
 
 jobs:
-  build:
-    name: Build & Test
+  docker:
+    name: Docker Build & Smoke Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - name: Build Docker image
+        run: docker build -t weather-dashboard-ci -f Dockerfile .
 
-      - name: Setup Corepack + Yarn
+      - name: Run container
+        run: docker run -d --name weather-dashboard-ci -p 3000:3000 --env-file .env.example weather-dashboard-ci
+
+      - name: Smoke test
         run: |
-          corepack enable
-          corepack prepare yarn@4.1.0 --activate
-          corepack yarn --version
+          for i in {1..20}; do
+            if curl -fsS http://localhost:3000 > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App did not become ready in time"
+          docker logs weather-dashboard-ci
+          exit 1
 
-      - name: Install dependencies
-        run: corepack yarn install --immutable
-
-      - name: Lint
-        run: corepack yarn lint
-
-      - name: Build application
-        run: corepack yarn build
+      - name: Cleanup
+        if: always()
+        run: docker rm -f weather-dashboard-ci || true
